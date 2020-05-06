@@ -1,0 +1,18 @@
+{
+  "prepare_queue": {
+    "installed": [],
+    "uninstalled": []
+  },
+  "config_munge": {
+    "files": {}
+  },
+  "installed_plugins": {
+    "phonegap-nfc": {
+      "PACKAGE_NAME": "com.tray.app"
+    },
+    "cordova-plugin-whitelist": {
+      "PACKAGE_NAME": "com.tray.app"
+    }
+  },
+  "dependent_plugins": {}
+}
