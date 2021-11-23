@@ -16,41 +16,66 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-//window.foo = 123;
 (function () {
-    window.foo = function (data) {
-        this.console.log('data', data);
+    window.sendMessageToNfc = function (data) {
         var ndefMessage = [ndef.textRecord(JSON.stringify(data))];
-        //var ndefMessage = [ ndef.textRecord('Hello danny') ];
         nfc.write(
             ndefMessage,
             function () {
                 alert('Wrote data to NFC tag');
             },
             function (err) {
-                //alert('ERROR: Failed to write message to NFC tag');
+                alert(err);
+            }
+        );
+    };
+
+    window.resetNFC = function () {
+        //var ndefMessage = [ndef.textRecord(JSON.stringify("Reset NFC"))];
+        nfc.erase(
+            function () {
+                alert('Erased NFC tag');
+            },
+            function (err) {
                 alert(err);
             }
         );
     };
 }).call(this);
 
+function writeTag(nfcEvent) {
+    var ndefMessage = [ndef.textRecord(JSON.stringify("init data"))];
+    nfc.write(
+        ndefMessage,
+        function () {
+            alert('Initial process done.');
+        },
+        function (reason) {
+            navigator.notification.alert(reason, function () { }, "There was a problem");
+        }
+    );
+}
+
 var app = {
-    // Application Constructor
     initialize: function () {
         document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);
     },
     onDeviceReady: function () {
-        console.log('deviceready');
         nfc.beginSession();
+        nfc.disableReaderMode();
         nfc.addNdefListener(
             function (nfcEvent) {
                 var tag = nfcEvent.tag,
                     ndefMessage = tag.ndefMessage;
-                alert(nfc.bytesToString(ndefMessage[0].payload).substring(3));
-                //alert('Got data from tray, go to registration page');
-                //localStorage.removeItem('dataFromTray');
-                //localStorage.setItem('dataFromTray', nfc.bytesToString(ndefMessage[0].payload).substring(3));
+                var existingData = nfc.bytesToString(ndefMessage[0].payload).substring(3);
+                var tagId = nfc.bytesToHexString(tag.id);
+                if (tagId) {
+                    alert('Found tag ID');
+                }
+
+                var storageObject = { tagId: tagId, existingData: existingData };
+                localStorage.removeItem('nfcData');
+                localStorage.setItem('nfcData', JSON.stringify(storageObject));
             },
             function () {
                 //alert("Waiting for NDEF tag");
@@ -60,20 +85,8 @@ var app = {
             }
         );
 
-        nfc.addNdefFormatableListener(
-            function (nfcEvent) {
-                var tag = nfcEvent.tag,
-                    ndefMessage = tag.ndefMessage;
-                alert(JSON.stringify(ndefMessage));
-                alert(nfc.bytesToString(ndefMessage[0].payload).substring(3));
-            },
-            function () { // success callback
-                console.log('Also listening for tags that are NDEF formatable tags');
-            },
-            function (error) { // error callback
-                alert('Error adding NDEF listener ' + JSON.stringify(error));
-            }
-        );
+        nfc.addTagDiscoveredListener(writeTag, win, fail);
+
     },
     // Update DOM on a Received Event
     // receivedEvent: function (id) {
@@ -85,7 +98,15 @@ var app = {
     //     receivedElement.setAttribute('style', 'display:block;');
 
     //     console.log('Received Event: ' + id);
-    // }
+    //}
 };
 
 app.initialize();
+
+function win() {
+    console.log("Listening for NDEF tags");
+}
+
+function fail() {
+    alert('Failed to register NFC Listener');
+}
